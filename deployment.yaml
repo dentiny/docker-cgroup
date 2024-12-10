@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stall-forever
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stall-forever
+  template:
+    metadata:
+      labels:
+        app: stall-forever
+    spec:
+      containers:
+      - name: stall-forever
+        image: dentiny:stall_image
+        ports:
+        - containerPort: 8080

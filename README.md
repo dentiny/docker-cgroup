@@ -1,7 +1,7 @@
 # docker-cgroup
 This repository is used to check cgroup operation within a container.
 
-### Steps to reproduce
+### Steps to reproduce docker experiment
 1. Make sure host machine already mounts cgroupv2 with rw permission
 ```shell
 sudo vim /etc/default/grub
@@ -48,3 +48,17 @@ root@3ee2f6db14d7:/# cat /proc/943/status | grep -iE 'vmrss|vmsize'
 
 5. Observation
 - For `memory_allocation` program, if we update `memory.max` to be less than current consumption, memory will be released and executes normal
+
+### Steps to reproduce kubernetes experiment
+1. Create local kubernetes cluster
+```shell
+kind create cluster --image=kindest/node:v1.26.0
+```
+2. Build image and load to kubernetes cluster
+```shell
+docker build -t dentiny:stall_image .
+# `kind` is the cluster name, could be checked by `kind get clusters`
+kind load docker-image dentiny:stall_image --name kind
+# Deploy k8s deployment
+k apply -f deployment.yaml
+```
