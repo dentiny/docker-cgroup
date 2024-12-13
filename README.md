@@ -34,6 +34,8 @@ echo 80M > /sys/fs/cgroup/ray_application_uuid/memory.max
 ```
 4. Appendix
 ```shell
+# Check cgroupv2 mount
+mount | grep cgroup
 # Install useful tools
 apt update -y && apt install -y htop g++ vim
 # Compile test program
@@ -44,6 +46,8 @@ g++ -std=c++17 memory_allocation.cc -o memory_allocation
 cat /sys/fs/cgroup/ray_application_uuid/memory.current
 # Check current process memory consumption
 root@3ee2f6db14d7:/# cat /proc/943/status | grep -iE 'vmrss|vmsize'
+# Check CRI
+k get nodes -o wide
 ```
 
 5. Observation
