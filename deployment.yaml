@@ -1,12 +1,13 @@
+# Kubernetes delegates writable cgroup feature to CRI.
 # github issue: https://github.com/kubernetes/kubernetes/issues/121190
-# cri PR: https://github.com/cri-o/cri-o/pull/5277
+#
+# Depending on different CRI implementations, there're writable cgroup supported or ongoing.
+# cri-o PR: https://github.com/cri-o/cri-o/pull/5277
+# containerd PR: https://github.com/containerd/containerd/pull/11131
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: stall-forever
-  # TODO(hjiang): Certain annotation doesn't work.
-  annotations:
-    io.kubernetes.cri-o.cgroup2-mount-hierarchy-rw: "true"
 spec:
   replicas: 1
   selector:
@@ -24,9 +25,5 @@ spec:
         # Reference: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#securitycontext-v1-core
         securityContext:
           privileged: true
-          # TODO(hjiang): Certain capability doesn't work.
-          capabilities:
-            add:
-            - SYS_RESOURCE
         ports:
         - containerPort: 8080

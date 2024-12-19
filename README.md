@@ -55,10 +55,13 @@ cat /sys/fs/cgroup/ray_application_cgroup/memory.current
 root@3ee2f6db14d7:/# cat /proc/943/status | grep -iE 'vmrss|vmsize'
 # Check CRI
 k get nodes -o wide
+# Cleanup unused docker image and others
+docker system prune -a --volumes
 ```
 5. Observation / takeaway
 - For `memory_allocation` program, if we update `memory.max` to be less than current consumption, memory will be released and executes normally
 - Before adding memory limit to leaf cgroup leaf, should apply suitable permission at parent node's `cgroup.subtree_control`
+- Only allow to add PIDs into leaf cgroup node
 
 ### Steps to reproduce kubernetes experiment
 1. Create local kubernetes cluster
