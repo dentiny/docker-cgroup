@@ -38,6 +38,17 @@ mkdir -p /sys/fs/cgroup/ray_application_cgroup/uuid
 echo pid >> /sys/fs/cgroup/ray_application_cgroup/uuid/cgroup.procs
 # Specify memory min and max for the cgroup
 echo 100M > /sys/fs/cgroup/ray_application_cgroup/uuid/memory.max
+
+# Destruct the application specific cgroup.
+#
+# Create default application cgroup.
+mkdir -p /sys/fs/cgroup/ray_application_cgroup/default
+# Move our own application to the default cgroup.
+for pid in $(cat /sys/fs/cgroup/ray_application_cgroup/uuid/cgroup.procs); do
+    echo $pid >> /sys/fs/cgroup/ray_application_cgroup/default/cgroup.procs
+done
+# Delete application cgroup folder.
+rmdir /sys/fs/cgroup/ray_application_cgroup/uuid
 ```
 4. Appendix
 ```shell
@@ -62,6 +73,7 @@ docker system prune -a --volumes
 - For `memory_allocation` program, if we update `memory.max` to be less than current consumption, memory will be released and executes normally
 - Before adding memory limit to leaf cgroup leaf, should apply suitable permission at parent node's `cgroup.subtree_control`
 - Only allow to add PIDs into leaf cgroup node
+- Cgroup can only be deleted when no pids managed
 
 ### Steps to reproduce kubernetes experiment
 1. Create local kubernetes cluster
