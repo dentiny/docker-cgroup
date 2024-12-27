@@ -49,6 +49,13 @@ for pid in $(cat /sys/fs/cgroup/ray_application_cgroup/uuid/cgroup.procs); do
 done
 # Delete application cgroup folder.
 rmdir /sys/fs/cgroup/ray_application_cgroup/uuid
+
+# Place process back from default cgroup to specific cgroup.
+#
+# Create a specific cgroup.
+mkdir /sys/fs/cgroup/ray_application_cgroup/uuid
+# Put process into the cgroup.
+echo pid >> /sys/fs/cgroup/ray_application_cgroup/uuid/cgroup.procs
 ```
 4. Appendix
 ```shell
