@@ -16,6 +16,18 @@ docker run --security-opt seccomp=unconfined --privileged -it ubuntu:20.04
 ```
 3. Create application related cgroups
 ```shell
+# (to verify cgroup operation at non-docker env) At the very beginning create a few processes.
+./memory_allocation &
+# Check the process is added into default operating system's cgroup.
+cat /sys/fs/cgroup/cgroup.procs
+
+# Create operating system's cgroup.
+mkdir -p /sys/fs/cgroup/operating_system
+# Move our existing processes to the default cgroup.
+for pid in $(cat /sys/fs/cgroup/cgroup.procs); do
+    echo $pid >> /sys/fs/cgroup/operating_system/cgroup.procs
+done
+
 # Create our own system cgroup
 mkdir -p /sys/fs/cgroup/ray_system_uuid
 # Move all root cgroup process into the system cgroup
@@ -81,6 +93,7 @@ docker system prune -a --volumes
 - Before adding memory limit to leaf cgroup leaf, should apply suitable permission at parent node's `cgroup.subtree_control`
 - Only allow to add PIDs into leaf cgroup node
 - Cgroup can only be deleted when no pids managed
+- Only allow to update child cgroup subcontrol parent cgroup doesn't contain any PIDs
 
 ### Steps to reproduce kubernetes experiment
 1. Create local kubernetes cluster
