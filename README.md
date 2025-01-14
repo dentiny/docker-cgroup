@@ -17,55 +17,63 @@ docker run --security-opt seccomp=unconfined --privileged -it ubuntu:20.04
 3. Create application related cgroups
 ```shell
 # (to verify cgroup operation at non-docker env) At the very beginning create a few processes.
-./memory_allocation &
+./raylet &
 # Check the process is added into default operating system's cgroup.
 cat /sys/fs/cgroup/cgroup.procs
 
 # Create operating system's cgroup.
 mkdir -p /sys/fs/cgroup/operating_system
 # Move our existing processes to the default cgroup.
+# Notice since init process is placed under `operating_system` cgroup, new processes spawned will by default placed under certain cgroup.
 for pid in $(cat /sys/fs/cgroup/cgroup.procs); do
     echo $pid >> /sys/fs/cgroup/operating_system/cgroup.procs
 done
+# Specify memory and CPU enforcement for the current cgroup, which allows self-customized cgroup.
+# Subcgroups are allowed to set memory related parameters as well.
+echo "+memory" >> /sys/fs/cgroup/cgroup.subtree_control
 
-# Create our own system cgroup
-mkdir -p /sys/fs/cgroup/ray_system_uuid
-# Move all root cgroup process into the system cgroup
-echo 1 > /sys/fs/cgroup/ray_system_uuid/cgroup.procs
-# Specify memory and CPU enforcement for the current cgroup, which allows self-customized cgroup
-echo "+memory +pids" >> /sys/fs/cgroup/cgroup.subtree_control
+# Create our own ray cgroup
+mkdir -p /sys/fs/cgroup/ray_cluster
 # Set memory consumption limitation for the system cgroup
-echo 100G > /sys/fs/cgroup/ray_system_uuid/memory.max
+echo 100G > /sys/fs/cgroup/ray_cluster/memory.max
+# Also allow ray system and application cgroup to configure their own memory parameters
+echo "+memory" >> /sys/fs/cgroup/ray_cluster/cgroup.subtree_control 
+
+# Create our own ray system cgroup
+mkdir -p /sys/fs/cgroup/ray_cluster/internal
+# Place ray internal components into system cgroup
+echo $raylet_pid >> /sys/fs/cgroup/ray_cluster/internal/cgroup.procs
 
 # Create our own application cgroup
-mkdir -p /sys/fs/cgroup/ray_application_cgroup
+mkdir -p /sys/fs/cgroup/ray_cluster/application
 # Specify memory min and max for the cgroup
-echo 80M > /sys/fs/cgroup/ray_application_cgroup/memory.max
+echo 80M > /sys/fs/cgroup/ray_cluster/application/memory.max
 # Allow resource enforcement on leaf cgroup
-echo "+memory +pids" >> /sys/fs/cgroup/ray_application_cgroup/cgroup.subtree_control
+echo "+memory" >> /sys/fs/cgroup/ray_cluster/application/cgroup.subtree_control
 
 # Create leaf cgroup for each application groups
-mkdir -p /sys/fs/cgroup/ray_application_cgroup/uuid
+mkdir -p /sys/fs/cgroup/ray_cluster/application/task_id
 # Create `procs` file, which indicates the process under the current cgroup
-echo pid >> /sys/fs/cgroup/ray_application_cgroup/uuid/cgroup.procs
+echo pid >> /sys/fs/cgroup/ray_cluster/application/task_id/cgroup.procs
 # Specify memory min and max for the cgroup
-echo 100M > /sys/fs/cgroup/ray_application_cgroup/uuid/memory.max
+echo 100M > /sys/fs/cgroup/ray_cluster/application/task_id/memory.max
 
 # Destruct the application specific cgroup.
 #
 # Create default application cgroup.
-mkdir -p /sys/fs/cgroup/ray_application_cgroup/default
+mkdir -p /sys/fs/cgroup/ray_cluster/application/default
 # Move our own application to the default cgroup.
-for pid in $(cat /sys/fs/cgroup/ray_application_cgroup/uuid/cgroup.procs); do
-    echo $pid >> /sys/fs/cgroup/ray_application_cgroup/default/cgroup.procs
+for pid in $(cat /sys/fs/cgroup/ray_cluster/application/uuid/cgroup.procs); do
+    echo $pid >> /sys/fs/cgroup/ray_cluster/application/default/cgroup.procs
 done
 # Delete application cgroup folder.
-rmdir /sys/fs/cgroup/ray_application_cgroup/uuid
+# Notice we cannot `rm -rf` but have to `rmdir` an empty cgroup folder.
+rmdir /sys/fs/cgroup/ray_cluster/application/task_id
 
 # Place process back from default cgroup to specific cgroup.
 #
 # Create a specific cgroup.
-mkdir /sys/fs/cgroup/ray_application_cgroup/uuid
+mkdir /sys/fs/cgroup/ray_application_cgroup/task_id
 # Put process into the cgroup.
 echo pid >> /sys/fs/cgroup/ray_application_cgroup/uuid/cgroup.procs
 ```
